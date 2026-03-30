@@ -26,3 +26,7 @@ DodgeEvent.Parent = RemoteEvents
 local CombatHandler = require(script.Parent:WaitForChild("CombatHandler"))
 
 print("RemoteEvents configurados e CombatHandler iniciado.")
+
+local PlayAnimationEvent = Instance.new("RemoteEvent")
+PlayAnimationEvent.Name = "PlayAnimationEvent"
+PlayAnimationEvent.Parent = RemoteEvents

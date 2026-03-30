@@ -14,6 +14,7 @@ local AttackEvent = RemoteEvents:WaitForChild("AttackEvent")
 local ParryEvent = RemoteEvents:WaitForChild("ParryEvent")
 local BlockEvent = RemoteEvents:WaitForChild("BlockEvent")
 local DodgeEvent = RemoteEvents:WaitForChild("DodgeEvent")
+local PlayAnimationEvent = RemoteEvents:WaitForChild("PlayAnimationEvent")
 
 -- Variáveis de estado do jogador no lado do servidor
 local lastAttackTime = {}
@@ -80,7 +81,7 @@ function CombatHandler.ApplyDamage(attacker, target, damageConfig)
     if _G.PlayerStates[targetUserId].Posture <= 0 then
         print(target.Name .. " teve a postura quebrada!")
         StateModule.Set(targetPlayer, "Stunned", true)
-        -- Tocar animação de GuardBreak
+        PlayAnimationEvent:FireClient(targetPlayer, CombatConfig.Animations.GuardBreak)
         task.delay(2, function()
             StateModule.Set(targetPlayer, "Stunned", false)
             _G.PlayerStates[targetUserId].Posture = CombatConfig.MaxPosture * 0.5 -- Recupera metade
@@ -114,7 +115,7 @@ local function onAttack(player)
     local combo = attackCombo[userId]
     local animId = CombatConfig.Animations.LightAttacks[combo]
     print("Player " .. player.Name .. " usou M1 combo " .. combo)
-    -- Tocar animação (a ser feito no client-side)
+    PlayAnimationEvent:FireClient(player, animId)
 
     -- Criar hitbox
     task.wait(0.1) -- Pequeno delay para a animação começar
@@ -146,7 +147,7 @@ ParryEvent.OnServerEvent:Connect(function(player)
     _G.PlayerStates[userId].Stamina = math.max(0, _G.PlayerStates[userId].Stamina - CombatConfig.StaminaCosts.Parry)
 
     StateModule.Set(player, "Parrying", true)
-    -- CombatHandler.PlayAnimation(character.Humanoid, CombatConfig.Animations.Parry)
+    PlayAnimationEvent:FireClient(player, CombatConfig.Animations.Parry)
     print(player.Name .. " está parrying!")
 
     -- Define uma janela de parry
@@ -170,7 +171,7 @@ BlockEvent.OnServerEvent:Connect(function(player, isBlocking)
 
     StateModule.Set(player, "Blocking", isBlocking)
     if isBlocking then
-        -- CombatHandler.PlayAnimation(character.Humanoid, CombatConfig.Animations.Block)
+        PlayAnimationEvent:FireClient(player, CombatConfig.Animations.Block)
         print(player.Name .. " está bloqueando!")
     else
         print(player.Name .. " parou de bloquear.")
@@ -190,7 +191,7 @@ DodgeEvent.OnServerEvent:Connect(function(player)
     _G.PlayerStates[userId].Stamina = math.max(0, _G.PlayerStates[userId].Stamina - CombatConfig.StaminaCosts.Dodge)
 
     StateModule.Set(player, "Dodging", true)
-    -- CombatHandler.PlayAnimation(character.Humanoid, CombatConfig.Animations.Dodge)
+    PlayAnimationEvent:FireClient(player, CombatConfig.Animations.Dodge)
     print(player.Name .. " está esquivando!")
 
     -- Aplica i-frames ou move o jogador rapidamente

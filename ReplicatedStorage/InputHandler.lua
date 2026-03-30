@@ -18,6 +18,9 @@ local player = Players.LocalPlayer
     Este script (LocalScript) captura a entrada do jogador e a envia para o servidor.
 ]]
 
+local f_key_pressed_time = nil
+local is_blocking = false
+
 local function onInputBegan(input, gameProcessedEvent)
     if gameProcessedEvent then return end
 
@@ -28,13 +31,6 @@ local function onInputBegan(input, gameProcessedEvent)
         end
     end
 
-    -- Parry
-    if input.KeyCode == Enum.KeyCode.F then
-        if not StateModule.Is(player, "Attacking") and not StateModule.Is(player, "Stunned") and not StateModule.Is(player, "Blocking") then
-            ParryEvent:FireServer()
-        end
-    end
-
     -- Dodge
     if input.KeyCode == Enum.KeyCode.Q then
         if not StateModule.Is(player, "Attacking") and not StateModule.Is(player, "Stunned") then
@@ -42,10 +38,10 @@ local function onInputBegan(input, gameProcessedEvent)
         end
     end
 
-    -- Block (Segurar)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+    -- Início do Pressionamento da Tecla F
+    if input.KeyCode == Enum.KeyCode.F then
         if not StateModule.Is(player, "Attacking") and not StateModule.Is(player, "Stunned") then
-            BlockEvent:FireServer(true) -- Começa a bloquear
+            f_key_pressed_time = os.clock()
         end
     end
 end
@@ -53,13 +49,35 @@ end
 local function onInputEnded(input, gameProcessedEvent)
     if gameProcessedEvent then return end
 
-    -- Parar de bloquear
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        BlockEvent:FireServer(false) -- Para de bloquear
+    -- Fim do Pressionamento da Tecla F
+    if input.KeyCode == Enum.KeyCode.F then
+        if f_key_pressed_time then
+            local press_duration = os.clock() - f_key_pressed_time
+            
+            if is_blocking then
+                -- Se já estava bloqueando, para de bloquear
+                BlockEvent:FireServer(false)
+                is_blocking = false
+            elseif press_duration < 0.2 then
+                -- Se a duração for curta, é um Parry
+                ParryEvent:FireServer()
+            end
+        end
+        f_key_pressed_time = nil
     end
 end
+
+-- Loop para verificar o hold da tecla F
+game:GetService("RunService").Heartbeat:Connect(function()
+    if f_key_pressed_time and not is_blocking then
+        if (os.clock() - f_key_pressed_time) >= 0.2 then
+            BlockEvent:FireServer(true)
+            is_blocking = true
+        end
+    end
+end)
 
 UserInputService.InputBegan:Connect(onInputBegan)
 UserInputService.InputEnded:Connect(onInputEnded)
 
-print("InputHandler carregado para o jogador local.")
+print("InputHandler (R6/R15 Fix) carregado para o jogador local.")
